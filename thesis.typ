@@ -1,4 +1,4 @@
-#import "config.typ": author_name, cover_page_approvers, submission_date, thesis_title, draft_mode
+#import "config.typ": author_name, cover_page_approvers, draft_mode, submission_date, thesis_title
 
 #set page(paper: "us-letter", margin: (left: 1.5in, right: 1in, top: 1in, bottom: 1in))
 #set text(font: "Times New Roman", size: 12pt)
@@ -101,12 +101,12 @@ Approved:
         #upper(it.element.body.text)
         #box(width: 1fr, repeat("", gap: 0.15em))
         #it.page()
-      ])
+      ]),
     )
   } else if it.element.depth == 2 {
     link(
       it.element.location(),
-      it
+      it,
     )
   }
 }
@@ -120,7 +120,7 @@ Approved:
 #counter(page).update(1)
 #set page(
   header: context {
-      align(right)[#counter(page).display("1")]
+    align(right)[#counter(page).display("1")]
   },
   footer: none,
 )

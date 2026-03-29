@@ -1,4 +1,4 @@
-#let thesis_title = "Reviewing Development Processes Between the University of Utah Computer Science Capstone Course and Industry Teams"
+#let thesis_title = "INSERT TITLE HERE"
 #let author_name = "Sathya Tadinada"
 #let submission_date = datetime(year: 2026, month: 3, day: 1)
 #let draft_mode = true
