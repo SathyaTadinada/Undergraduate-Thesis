@@ -1,332 +1,163 @@
-#let footnote_link(url) = footnote(link(url))
+#let footnote_link(url) = footnote(link(url), numbering: "[1]")
+#show footnote.entry: it => {
+  let loc = it.note.location()
+  numbering(
+    "1. ",
+    ..counter(footnote).at(loc),
+  )
+  it.note.body
+}
+#show cite: it => [
+  #super[#it]
+]
 
-= Introduction
+= Introduction and Background
 
-FreezeTag is a free and open-source, self-hosted image management application developed for the University of Utah's Kahlert School of Computing senior capstone project during the Fall 2025 and Spring 2026 semesters by Ethan Collier, Brayden Jonsson, Max Petersen, and Sathya Tadinada (the author). FreezeTag is designed to give photographers, businesses, and hobbyists a way to store, organize, and retrieve their photos without depending on a cloud-based service. The application runs on hardware the user already owns, exposes its interface through a web browser, and allows users to attach custom tags and metadata to their images so that specific photos can be found quickly even across very large collections.
+== Introduction to FreezeTag
 
-A core problem FreezeTag addresses is that existing image management solutions force users to choose between convenience and control. Services like Google Photos and Apple Photos are easy to use and widely accessible, but they store data on remote servers owned by third parties, charge recurring fees that grow with the size of a user's collection, and offer little to no ability to customize how the software behaves. On the other end of the spectrum, tools like DigiKam #footnote_link("https://www.digikam.org/") provide local storage and more configurability, but require the application to be installed on every device the user wants to access their photos from, and setting up networked access across multiple machines is a cumbersome manual process. Neither category of solution works well for the kinds of users FreezeTag targets, which include freelance photographers managing large client libraries, small businesses that need to self-host for data security or compliance reasons, and technically-inclined hobbyists who already run their own network-attached storage devices and want software that fits into that infrastructure.
+FreezeTag is a free and open-source, self-hosted image management application developed for the University of Utah's Kahlert School of Computing senior capstone project during the Fall 2025 and Spring 2026 semesters by Ethan Collier, Brayden Jonsson, Max Petersen, and Sathya Tadinada (the author of this thesis). FreezeTag is designed to give photographers, businesses, and hobbyists a way to store, organize, and retrieve their photos without depending on a cloud-based service. The application runs on hardware the user already owns, exposes its interface through a web browser, and allows users to attach custom tags and metadata to their images so that specific photos can be found quickly even across very large collections.
 
-A second problem is how most image management tools handle organization and search. The dominant approach across nearly every major solution is folder-based organization, where photos are sorted into a hierarchy of directories, often by date or by some manually-maintained folder structure. Google Photos organizes images chronologically and offers an AI-powered search that can recognize objects and faces, but it does not give users a way to define and apply their own categorical labels in any structured way. DigiKam supports tags in principle, but the tagging system is secondary to its folder-based model and is not designed around search as a primary use case. Apple Photos has albums, which function similarly to folders, and its search is limited to metadata that the app itself recognizes automatically. In general, none of these tools treat user-defined tags as a first-class feature, meaning that a photographer who wants to label images by client name, usage rights, subject matter, and shooting location simultaneously has no good way to do that and then query across all of those dimensions at once.
+A core problem FreezeTag addresses is that existing image management solutions force users to choose between convenience and control. Services like Google Photos @google_photos and Apple Photos @apple_photos are easy to use and widely accessible, but they store data on remote servers owned by third parties, charge recurring fees that grow with the size of a user's collection, and offer little to no ability to customize how the software behaves. On the other end of the spectrum, tools like DigiKam @digikam provide local storage and more configurability, but require the application to be installed on every device the user wants to access their photos from, and setting up networked access across multiple machines is a cumbersome manual process. Neither category of solution works well for the kinds of users FreezeTag targets. Freelance photographers benefit from the tagging system for organizing work by client or event, and from the guarantee that the original image format is always preserved and recoverable. Small businesses gain the ability to operate on air-gapped or otherwise isolated infrastructure for compliance or security reasons, and to integrate FreezeTag directly through its API into automated workflows without depending on a third-party service's uptime or pricing. Technically inclined hobbyists who already run their own network-attached storage devices get software that fits naturally into that infrastructure without requiring any accounts, subscriptions, or external services. Across all of these use cases, self-hosting also means the operator controls uptime entirely, since there is no third-party outage that can take access to a photo library offline.
 
-FreezeTag treats tags as the primary organizational unit of the application. Rather than asking users to maintain a folder hierarchy, FreezeTag allows any number of tags to be attached to any image, and those tags are stored in a searchable database alongside automatically extracted EXIF metadata. A user can apply tags like "client:Acme", "location:SaltLake", and "format:print" to a batch of images at upload time, and then later retrieve exactly that subset of their collection by searching across any combination of those tags. This model scales much more naturally to large or complex libraries than folder structures do, because a single image can belong to multiple logical groupings without needing to be duplicated or symlinked across directories.
+A second problem is how most image management tools handle organization and search. The dominant approach across nearly every major solution is folder-based organization, where photos are sorted into a hierarchy of directories, often by date or by some manually maintained folder structure. Google Photos organizes images chronologically and offers an AI-powered search that can recognize objects and faces, but it does not give users a way to define and apply their own categorical labels in any structured way. DigiKam supports tags in principle, but the tagging system is secondary to its folder-based model and is not designed around search as a primary use case. Apple Photos has albums, which function similarly to folders, and its search is limited to metadata that the app itself recognizes automatically. In general, none of these tools treat user-defined tags as a first-class feature, meaning that a photographer who wants to label images by client name, usage rights, subject matter, and shooting location simultaneously has no good way to do that and then query across all of those dimensions at once.
 
-FreezeTag addresses the self-hosting problem by running as a web server on hardware the user provides. Because the interface is entirely browser-based, any device on the same network can connect to a single FreezeTag instance without any software installation on the client side. Photos are stored locally and deployment is handled through Docker Compose, which means getting a FreezeTag instance running requires only a single command, and the environment is consistent regardless of what operating system the host machine is running.
+FreezeTag treats tags as the primary organizational unit of the application. Rather than asking users to maintain a folder hierarchy, FreezeTag allows any number of tags to be attached to any image, and those tags are stored in a searchable database alongside automatically extracted EXIF metadata. A user can apply tags like "client:Acme", "location:SaltLake", and "format:print" to a batch of images at upload time, and then later retrieve exactly that subset of their collection by searching across any combination of those tags. This model scales much more naturally to large or complex libraries than folder structures do, because a single image can belong to multiple logical groupings without needing to be duplicated or moved across directories.
 
-Beyond the core tagging and gallery functionality, FreezeTag is designed to be extensible through a Python-based plugin system. The Go backend server can load, run, and manage plugins that add new capabilities to the application, and because plugins are written in Python, they have access to the full Python ecosystem, including machine learning libraries like PyTorch #footnote_link("https://pytorch.org/") and TensorFlow #footnote_link("https://www.tensorflow.org/"). FreezeTag ships with several first-party plugins, including automated face recognition, local image captioning, location tagging based on GPS coordinates, and bulk export tools. Community-developed plugins are also supported, and a public plugin API makes it possible for developers outside the team to build and distribute their own extensions. This plugin architecture was central to the design philosophy of FreezeTag from the beginning: rather than trying to anticipate every possible use case and bake it into the core application, the goal was to build a solid, minimal foundation that could be extended to fit nearly any workflow.
+FreezeTag addresses the self-hosting problem by running as a web server on hardware the user provides. Because the interface is entirely browser-based, any device on the same network can connect to a single FreezeTag instance without any software installation on the client side. Photos are stored locally and deployment is handled through Docker Compose @docker_compose, which means getting a FreezeTag instance running requires only a single command, and the environment is consistent regardless of what operating system the host machine is running. FreezeTag is planned for release under the MIT open-source license following the conclusion of the capstone sequence, meaning it will be free to use, modify, and distribute without restriction. Beyond the core tagging and gallery functionality, FreezeTag is also extensible through a Python-based plugin system, which will be described in more detail later in this chapter.
 
-The team was organized into two frontend engineers and two backend engineers, with each member owning a specific area of the codebase. As the frontend interface engineer, my responsibilities centered on the visual design and implementation of the user-facing portions of the application, including the gallery, the tagging panel, and various other pages. My Rank 3 features were a first-party plugin for displaying photo locations on an interactive map, and custom theme importing functionality that allows users to load and apply their own color themes to the FreezeTag interface. We used an Agile development process organized around one-week sprints, with standups, code reviews, and sprint retrospectives throughout both semesters of development. The following chapters cover the technical architecture of the system, the engineering practices we adopted as a team, my individual contributions in more detail, and a reflection on what the project taught me about software development in a collaborative setting.
+== Team Formation
 
-#pagebreak(weak: true)
+FreezeTag was built by four developers over approximately two semesters of active development time, with each developer spending roughly ten hours per week on the project. Development began in the Fall 2025 semester and concluded near the end of the Spring 2026 semester. We used GitLab @gitlab for hosting our code repository, issue board, and contribution guidelines. The team was split into two frontend engineers and two backend engineers, with each member owning a clearly defined area of the codebase from the start of the project. The developers on the project were:
+- Ethan Collier, Backend Feature Engineer
+- Brayden Jonsson, Frontend Architecture Engineer
+- Max Petersen, Backend Architecture Engineer
+- Sathya Tadinada (the author of this thesis), Frontend Interface Engineer
+The frontend and backend teams each owned distinct areas of the codebase throughout development. On the frontend side, Brayden was responsible for lower-level concerns such as parsing and handling API responses, managing frontend state, and handling authentication on the client side, while I was responsible for the visual design and CSS implementation of all user-facing pages. On the backend side, Ethan owned the API endpoints and the primary user-facing features such as image storage and metadata parsing, while Max was responsible for dependency management, the plugin environment, and deployment infrastructure. In practice there was some natural overlap, particularly around API contract decisions between the frontend and backend teams, but the division held well throughout both semesters. We used an Agile development process organized around two-week sprints, with standups, code reviews, and sprint retrospectives throughout both semesters of development, which is covered in detail in the Software Methodologies and Techniques chapter.
 
-= Introduction
+== Tech Stack and Architecture
 
-_TradeTracker_ is a mobile and web application that was developed for the University of Utah's Kahlert School of Computing senior capstone project during the Spring 2025 and Fall 2025 semesters by Andy Hsu, Jie Lin, Thomas Stratford, Chase Harkcom (the author of this thesis).
-_TradeTracker_ eases some of the difficulties that trading card game (TCG) collectors and players face when participating in the hobby.
-A very common problem that TCG collectors face is managing their collection; there are thousands of trading cards in the most popular TCGs.
-For a TCG collector to determine if they own a card, they need to manually search through their physical collection of cards or manually query and maintain a digital record of collected cards.
-Remembering details about every card that one owns, like the current market price, is impossible, so many collectors turn to external tools, such as _TCGPlayer_, to determine the value of individual cards.
+At a high level, FreezeTag consists of two servers that communicate with each other and with a set of Python plugins. The Go @golang backend serves as the core of the application, handling API requests from the frontend, reading and writing image metadata to a SQLite @sqlite database, invoking ImageMagick @imagemagick for image format conversion and metadata parsing, and managing the lifecycle of Python plugins. The Next.js @nextjs frontend communicates with the backend over HTTPS and is responsible for all user interaction. The Python plugin layer sits below the backend and receives image and metadata payloads through a pipeline, returning processed results that the backend then stores or acts on. The entire system is deployed and orchestrated using Docker Compose, which allows the frontend server, backend server, and plugin environment to be started together with a single command. @system_architecture shows the overall architecture of the system.
 
-Another major problem that TCG players face is socialization.
-All currently popular TCG formats require multiple players, so it's essential to find other people to join.
-TCG players either need to be "in the know" to find events and tournaments where they can play with others, or they need to do lots of research across many platforms to find nearby card shops and their event schedules.
-Moreover, players being able to readily trade cards with other players is a very important part of the hobby since it encourages people to experiment with different card types and strategies when playing.
+The backend server is written in Go, which we chose for its performance, strong concurrency support, and straightforward deployment characteristics. Go's built-in support for goroutines made it a natural fit for a server that needs to handle plugin execution concurrently alongside serving API requests. The backend uses the Gin @gin web framework for routing and middleware, which also automatically generates Swagger documentation for all API endpoints through Gin-Swagger. This was useful during development because it gave the frontend team an always-current reference for the available endpoints without needing to read through backend source code directly.
 
-_TradeTracker_ addresses the problems of manual trading card collection management and cumbersome sociability by facilitating card collection management and giving players a dedicated, centralized forum in which they can socialize.
-The application eases collection management by allowing users to scan a photo of one or more cards with their camera, after which it will identify the card(s), prompt the user to confirm that the card(s) were identified correctly, and finally add the cards to their virtual collection.
-Once the user verifies that the cards were correctly scanned and added to their collection, they can easily search and filter through their collection to see more details about the card, including its current market price.
-The application facilitates socialization by allowing users to submit posts that other users can see and interact with, along with having in-app direct messaging and trading functionality.
-For example, one user can make a post saying that they are willing to trade certain cards for other certain cards.
-From there, the users can directly message each other and negotiate a trade.
-Finally, once they physically trade the cards, both users can confirm the trade in the app, and both of their digital collections will update accordingly.
-By addressing these difficulties, we hope _TradeTracker_ gives TCG collectors and players alike a centralized place to participate and enjoy the trading card game hobby.
+The backend uses SQLite as its database, which stores all image metadata, tag associations, user information, and plugin configuration. SQLite was a practical choice for a self-hosted application because it requires no separate database server process and stores the entire database as a single file on disk, making backups and migrations straightforward for non-technical users. Image format conversion and EXIF metadata extraction are handled through ImageMagick, a widely used open-source image processing library that supports an extensive range of file formats. On upload, ImageMagick extracts embedded metadata fields such as timestamps, GPS coordinates, and camera model, and also generates compressed thumbnail versions of images in the WebP @webp format for efficient display in the gallery interface.
 
-We used Agile methodologies and Scrum practices to develop our project, mirroring how much of the modern software development industry operates.
-Agile is an approach to developing software that focuses on adapting to changes and teams self-organizing based on what works best for them #footnote_link("https://agilealliance.org/agile101/").
-Scrum is a product development framework that is often used alongside Agile, which includes organizing tasks into lists called "backlogs" and fixed intervals called "sprints" #footnote_link("https://agilealliance.org/glossary/scrum/").
-At the end of each sprint, the team is to meet to review the results of the sprint and perform a retrospective, reflecting on how things went during the sprint.
-Moreover, Scrum describes a few roles, such as the "Scrum Master" and "Product Owner," to facilitate the completion of tasks through the backlogs and sprints.
-For our project, we applied Agile and Scrum by organizing our work into two-week sprints, performing stand-up meetings twice a week (alongside meetings with the course staff once a week), estimating issues at the beginning of every sprint, and performing a sprint retrospective at the end of each sprint.
-We didn't perform all of the different techniques suggested by the Scrum framework---part of working in an Agile format is to do whatever works best for the team, so we stuck with what was most comfortable for us, while factoring in our shared feedback from sprint retrospectives.
-Thus, we did not intentionally allocate specific "Scrum Master" or "Product Owner" roles; we treated each other as equal software developers.
-However, as the team member writing a thesis on how we used agile practices, leading most meetings, and making sure that our issue board was up to date, I was acting as a de facto "Scrum Master".
+The plugin environment is managed using uv @uv, a fast Python package manager, and each plugin runs in its own isolated virtual environment to prevent dependency conflicts between plugins. Communication between the Go backend and the Python plugins happens over a loopback port using a custom REST protocol, with the backend acting as the orchestrator that decides when to invoke a given plugin and what data to pass to it. Plugins can also read from a shared SQLite table that the backend exposes to them in read-only mode, which allows plugins to make decisions based on existing tags and metadata without needing a separate API call.
 
-// Should I put anything else here?
+The frontend is built with Next.js, a React-based framework that handles both server-side rendering and static asset serving. We used pnpm @pnpm as the package manager for the frontend project, and Jest @jest for unit testing. Image uploads are handled through react-dropzone @react_dropzone, which provides the drag-and-drop upload interface, and all communication with the backend API is done with a standard fetch API via undici @undici.
 
-#pagebreak(weak: true)
-
-= Background and Technical Requirements
-As mentioned previously, _TradeTracker_ is an application that aims to aid TCG players and collectors.
-Specifically, we identified the following user groups that would be inclined to use our app:
-- Hobbyists
-- Influencers
-- Investors
-- Professional players
-- Card shop owners
-- Tournament/event organizers
-
-Numerous other mobile apps provide similar card scanning/identification functionality, including _Poke TCG_ #footnote_link("https://apps.apple.com/us/app/pok%C3%A9-tcg-scanner-dragon-shield/id1199495742"), _Collectr_ #footnote_link("https://apps.apple.com/us/app/collectr-tcg-collector-app/id1603892248"), and _PokeTCG Sim_ #footnote_link("https://apps.apple.com/us/app/poketcg-sim-open-card-packs/id1635855177").
-These apps primarily focus on the financial aspect of collecting cards, but not so much the social and community-driven aspects.
-They primarily target the "investor" and "influencer" user base, who are interested in making a profit on the card market instead of the "game" parts of TCGs.
-Our app aims to cater to both financially and community-driven TCG consumers.
-We will provide similar services, like card price lookup and integration with card marketplaces to accommodate financially-driven players, as well as community-driven resources like event listings and inter-user communication.
-Also, our app is currently supporting the three most popular trading card games in the United States: _Pokémon TCG_, _Yu-Gi-Oh!_, and _Magic: The Gathering_.
-
-_TradeTracker_ was built by four developers in about 6 months of active development time, with each developer spending approximately 10 hours per week on the product.
-Development started in the latter half of the Spring 2025 semester (around April), was paused over the summer (from around May to late August), was resumed at the beginning of the Fall 2025 semester (late August), and finished development near the end of the Fall 2025 semester (late November).
-We used GitLab for hosting our code repository, issue board, and wiki.
-The developers on the project were:
-
-- Chase Harkcom (me), Primary Backend Developer and DevOps Engineer.
-- Thomas Stratford, Computer Vision Lead and Backend Developer.
-- Andy Hsu, Full-Stack Developer.
-- Jie Lin, Frontend Developer.
-
-We used the FastAPI #footnote_link("https://fastapi.tiangolo.com/") library for our backend server/REST API and SQLite for our database.
-We chose FastAPI because Andy and I had just used it in our _Web Development 2_ course here at the University of Utah.
-We considered using Django #footnote_link("https://www.djangoproject.com/") (the framework that was used in the _Web Development 1_ class) instead, but we ultimately chose FastAPI.
-We chose FastAPI because it allows for much more customizability with how the application lifecycle runs (easing the usage the image classification/computer vision libraries that will be mentioned later), is much more popular framework in the industry, and we just preferred the framework over Django; Django is more attuned for being a full-stack web framework, while we only cared about having a backend server/API, so FastAPI seemed like the best fit overall.
-Another benefit of using FastAPI is that it automatically generates an OpenAPI specification for API routes, meaning we could easily generate Swagger API documentation and automate route/type synchronization between the frontend and backend.
-
-We used a few other libraries in our backend server, including _pytest_ #footnote_link("https://docs.pytest.org/en/stable/") for comprehensive unit testing, _SQLModel_ #footnote_link("https://sqlmodel.tiangolo.com/") for database-code interaction, and _Alembic_ #footnote_link("https://alembic.sqlalchemy.org/en/latest/") to create automated database migrations.
-By the end of development, we had 54 endpoints and 127 unit tests for those endpoints, testing all possible errors that can be thrown (e.g., not authenticated, unauthorized resource access, etc).
-We implemented user authentication and authorization using JSON web tokens, leveraging _bcrypt_ #footnote_link("https://pypi.org/project/bcrypt/") and _python-jose_ #footnote_link("https://python-jose.readthedocs.io/en/latest/"), alongside the Google Credentials API for Google account integration.
-Finally, we used a few external APIs to populate our databases with card data:
-
-#list(..(
-  ("Pokémon TCG Developers", "https://pokemontcg.io/", [_Pokémon TCG_ card data]),
-  ("YGOPRODeck", "https://ygoprodeck.com/api-guide/", [_Yu-Gi-Oh!_ card data]),
-  ("MTG Developers", "https://docs.magicthegathering.io/", [_Magic: The Gathering_ card data]),
-  ("JustTCG", "https://justtcg.com/", [card price data]),
-).map(d => {
-  let (api_name, api_link, data_type) = d
-  [#emph(api_name) #footnote_link(api_link) for the #data_type.]
-}))
-
-// TODO: Mention how we downloaded/cached card images to not kill the APIs (a.k.a., we rehosted the images).
-
-We hosted the backend server remotely on an AWS EC2 instance.
-Initially, I was using the free tier of AWS resources to host the server (a `t2-micro` instance, which has 1 GiB of memory), but our computer vision models took up too much memory, and the backend server process kept being killed by the operating system.
-Thus, I upgraded the instance to a `t2.small` instance, which has 2 GiB of memory.
-We used AWS Elastic IP to ensure the IP address of the API was externally accessible and not dynamically changing, and I also configured the DNS records on my personal website to allow for external access to the API on the frontend via an easy-to-remember URL #footnote_link("http://tradetracker.chasehark.com/docs").
-My _Web Development 1_ and _Computer Networking_ classes at the university provided me with lots of context for accomplishing these tasks.
-
-I also built and configured a continuous integration (CI) pipeline using a separate EC2 instance, leveraging "GitLab Runner", which is software provided by GitLab to automatically fetch code changes and trigger pipeline execution when certain events occur.
-I used this to run our backend unit tests, backend code formatting, and frontend code formatting whenever a pull request was created or updated.
-If any of these steps failed, the PR would show a pipeline failure badge on it, which would block merging until the code was updated to fix the errors.
-Due to timing, I was unable to create an automated continuous deployment (CD) pipeline; we merged to our production branch only at the end of each sprint, so manually uploading the files to the EC2 instance was not a large hassle.
-However, I did create a small Bash script to facilitate the uploading of the code to the server.
-
-For our frontend application, we used the _Expo_ #footnote_link("https://expo.dev/") framework, which is backed by _React Native_ #footnote_link("https://reactnative.dev/").
-Using a React Native-based framework allowed us to have a unified codebase for our iOS, Android, and web applications.
-We also used a few minor libraries to aid in the frontend development process, including _VisionCamera_, #footnote_link("https://react-native-vision-camera.com/") which provided extra camera features that we needed, (and which the Expo SDK itself did not provide), _Tailwind CSS_ #footnote_link("https://tailwindcss.com/")/_NativeWind_ #footnote_link("https://www.nativewind.dev/") for easier and more ergonomic component styling, _TanStack Query_ #footnote_link("https://tanstack.com/query/") to simplify query state and resource management, and _HeyAPI OpenAPI-TS_ #footnote_link("https://heyapi.dev/openapi-ts/get-started/") for backend API type synchronization on the frontend.
-
-When we were in the pre-production phase of the project, we had a difficult choice to make between using a React Native framework (like Expo) or the popular _Flutter_ #footnote_link("https://flutter.dev/") framework.
-Both frameworks are geared toward making multi-platform (i.e., web, iOS, and Android) applications.
-Our team deliberated on this choice for a bit, but we ultimately decided on using Expo because most of us had at least some light React experience, meaning we wouldn't have to learn a new language/ecosystem from scratch (as would be the case with Flutter and the Dart ecosystem).
-Also, React is a much more popular library in the industry, noting that this would help us gain some valuable experience that could be applied in a professional setting, post-graduation.
-
-// TODO: Include if we put the app on the Google Play Store or Apple App Store.
-
-The final facet of our application is the card scanning computer vision module, which we created to identify trading cards based on scanned images from the mobile application.
-This module runs on the backend behind an API endpoint.
-When a user scans a card in the app, the image is sent to the backend through that endpoint, where the system attempts to identify and return the canonical identity of the scanned card.
-We use several YOLO-based segmentation models to detect, isolate, and align the cards from the provided image.
-We employ a cropping and perspective transformation model specific to each card game (_Pokémon TCG_, _Yu-Gi-Oh!_, and _Magic: The Gathering_), which yielded the most accurate results from our testing.
-The transformed images are then processed using the ImageHash Python library #footnote_link("https://pypi.org/project/ImageHash/") to compute both a perceptual hash and a difference hash, which capture the visual characteristics of the cards.
-These hashes allow us to measure similarity between a scanned image and reference card images.
-The hashes of all known cards are stored in a special type of search tree called a BK-tree #footnote_link("https://en.wikipedia.org/wiki/BK-tree"), enabling a fast lookup of the closest matching card at runtime.
-@system_architecture_diagram shows a holistic diagram of our application's architecture.
-
-We also planned a stretch feature of a separate moderation tool, where if users report offensive/inappropriate content, it would be flagged and be ready for review in this external application.
-However, we prioritized other features due to lack of time.
-
-We have currently published production builds to Apple's App Store Connect and Google Play Console for internal testing; we have successfully gotten the app to load and function properly on consumer devices.
-However, we don't plan on publishing publicly our app to the Apple App Store or Google Play Store.
-
-One of the requirements of the capstone project is that each teammate develop one or more "rank-3" feature(s) (i.e., a substantial feature that is secondary to the core app usage) individually.
-I implemented push notifications into our app (see @push_notifications_diagram for a diagram of how this was architected), alongside live updates to chats and posts.
-Andy developed the wishlist feature (see @wishlist_ui), alongside searching and filtering through posts.
-Thomas developed advanced card groupings (including page tags for binders and legality checks for decks), advanced card sorting and filtering (see @library_filters_ui), and card data pagination.
-Jie worked on polishing the UI on iOS and web builds (see @beta_auth_ui and @final_auth_ui), but as of our final demonstration to the course staff, this was left incomplete.
+The plugin system is one of the most distinctive aspects of FreezeTag's architecture. Rather than building every possible image processing feature directly into the backend, we designed a plugin interface that allows Python scripts to hook into the image upload pipeline and contribute new tags, captions, or other metadata based on the content of the uploaded image. Plugins are listed and managed through the plugin management page in the frontend, where users can enable or disable individual plugins and view their version and available hooks. @plugin_interface shows the plugin management interface. The first-party plugins that shipped with FreezeTag by the end of development were:
+- Face Recognition: detects and identifies faces in uploaded images using a local machine learning model, and automatically applies name-based tags to images containing recognized individuals.
+- Google Gemini Tagger: sends uploaded images to Google's Gemini API @gemini_api and uses the model's vision capabilities to generate descriptive tags automatically, providing a cloud-assisted tagging option for users who are comfortable with that tradeoff.
+- ML Tagger: runs a local machine learning model to classify image content and suggest tags without sending any data to an external service, making it suitable for users who want automated tagging with full data locality.
+- RAM Tagger: a lightweight local tagger that operates with a smaller memory footprint than the full ML Tagger, intended for users running FreezeTag on hardware with limited RAM.
+Each team member was also responsible for implementing at least one substantial Rank 3 feature independently. My two Rank 3 features were adding UI for displaying photo locations on an interactive map, and custom theme importing functionality. These are covered in detail in the Individual Contributions chapter.
 
 #figure(
-  image("../assets/system_architecture_diagram.png"),
+  image("../assets/System Architecture.png"),
   caption: [System Architecture Diagram],
-) <system_architecture_diagram>
+) <system_architecture>
 
+// TODO: Insert plugin interface screenshot here
 #figure(
-  image("../assets/push_notifications_diagram.png"),
-  caption: [Push Notifications Diagram],
-) <push_notifications_diagram>
-
-#figure(
-  image("../assets/wishlist_ui_screenshot.png", height: 45%),
-  caption: [Wishlist User Interface],
-) <wishlist_ui>
-
-#figure(
-  image("../assets/library_filters_ui_screenshot.png", height: 45%),
-  caption: [Library Filters User Interface],
-) <library_filters_ui>
-
-#figure(
-  image("../assets/beta_authentication_ui_screenshot.png", height: 45%),
-  caption: [Beta Authentication User Interface],
-) <beta_auth_ui>
-
-#figure(
-  image("../assets/final_authentication_ui_screenshot.png", height: 45%),
-  caption: [Final Authentication User Interface],
-) <final_auth_ui>
+  image("../assets/System Architecture.png"),
+  caption: [Plugin Management Interface],
+) <plugin_interface>
 
 #pagebreak(weak: true)
 
-= Usage of Agile and Scrum
-Throughout the development of _TradeTracker_, we followed an Agile methodology guided by Scrum principles.
-This approach allowed our team to remain flexible and adaptive as our project evolved, particularly when balancing our external academic and personal responsibilities alongside our varying skill sets.
-Agile provided us with a structure that encouraged asynchronous, continuous improvement, and collaboration while emphasizing working software over rigid planning, while Scrum gave us a template for determining what should be discussed and performed in each of our meetings.
+= Individual Contributions
 
-To start, my team leveraged GitLab's issue board (see @issue_board) feature to keep track of the work we had done and each sprint's progress (i.e., the "stories").
-Each of us had a pretty distinct role in the project, so determining who would take which issues/stories was pretty straightforward; I (and sometimes Thomas) would be assigned any backend issues, Thomas would be assigned to any computer vision/card scanning issues, and Jie and Andy would share frontend stories.
-Near the last few weeks of the project (in the final development phase), our roles became much looser as we rushed to finish the outstanding features and our personal rank-3 features, so stories were assigned to whoever had the capacity to complete them.
+== Role in the Project
 
-#figure(
-  image("../assets/issue_board.png"),
-  caption: [Issue Board During the Beta Phase],
-) <issue_board>
+As the frontend interface engineer on FreezeTag, my primary responsibility was the visual design and CSS implementation of every user-facing page in the application. The frontend team was divided between two distinct roles. Brayden, as the frontend architecture engineer, was responsible for the lower-level concerns of the frontend, such as managing API communication, handling authentication state, and structuring how data flowed through the application. My role sat on top of that foundation, taking the data and API integrations Brayden built and turning them into the actual interface that users see and interact with. In practice, the two roles required close and ongoing coordination throughout both semesters, since good UI components need real data behind them and data-handling code needs a UI surface to be meaningful. The pages I did primary development on were the overall application UX, the gallery page, the image detail view, the tags management page, the settings page, and the image detail sidebar. My two Rank 3 features were adding UI for displaying photo locations on an interactive map within the image detail view, and custom theme importing functionality accessible through the settings page.
 
-We leveraged GitLab's labels to keep track of the state of each story (i.e., "TODO", "In Progress", "Code Review", and "Done"), the "weight" field to assign "story points" to each story, which will elaborated upon later, and the "iteration" field to keep track of which "sprint" the story was to be completed in.
-See @issue_details for an example of a specific issue with these details assigned.
+== Frontend Interface Implementation
 
-#figure(
-  image("../assets/issue_details.png"),
-  caption: [Details Page of a Specific Issue],
-) <issue_details>
+The gallery page is the primary view of the application and the page that users land on after logging in. It displays all uploaded images in a responsive masonry-style grid, with each image rendered as a WebP thumbnail generated by the backend at upload time. The top of the page contains a search bar that accepts a custom query syntax, with example queries shown as hints below the bar to help new users understand how to construct searches. Alongside the search bar, there are three controls: a Tags dropdown, a Sort dropdown, and a Select button.
 
-My team met on Monday and Wednesday mornings remotely over Discord for about an hour.
-At the beginning of each meeting, we would start with a short stand-up section, where each member of the team would briefly discuss what they worked on since the last meeting, what they were planning on working on until the next meeting, and any blockers they had encountered since the previous meeting.
-These meetings helped everyone on the team stay up to date on the state of the project and other team members, ensuring consistent communication despite our different schedules and workloads.
+[PLACEHOLDER: Gallery page screenshot showing the Tags dropdown open (Image 1)]
 
-We organized our development process into two-week sprints.
-The capstone course is separated into three phases that consist four weeks (for the Alpha, Beta, and Final Release phases), so we allocated two sprints per phase.
-At our first meeting of a new sprint, we would perform issue estimation.
-Throughout the sprint, we all created new issues as needed that would be triaged at the aforementioned meeting.
-Near the end of each sprint (i.e., the second Wednesday of the sprint), we performed a sprint retrospective, where we spent time discussing what went well, what went poorly, how we could improve as a team, and some general shoutouts to praise any exceptional work.
-The sprint retrospective was a late addition to our sprint process, so we had only performed a few by the time development had ceased.
+The Tags dropdown allows users to filter the gallery by tag using an intersection model. When a user opens the dropdown, it displays all tags currently present in the library along with a count of how many images carry each tag. Selecting a tag filters the gallery to show only images with that tag, and the dropdown then updates to show only the tags that also appear on those filtered images. This means a user can progressively narrow their search by selecting multiple tags in sequence, and at each step the dropdown only presents tags that are actually relevant to the current filtered set rather than the full list. This behavior directly reflects FreezeTag's tag-first philosophy, where combinations of tags are the primary way users navigate their library.
 
-We began each sprint with an estimation of our currently open issues using story points.
-Story points #footnote_link("https://agilealliance.org/glossary/points-estimates-in/") (also known as glossary points) are a metric for estimating how difficult a task is or how long it will take.
-These meetings consisted of taking the issues in our backlog, triaging the issues (i.e., determining if the problem/feature described in the issue was already resolved or splitting the issue into multiple parts if necessary), and assigning them to the current sprint if applicable.
-Moreover, we would hold a vote on the issue to determine its "weight" (GitLab's representation of story points).
-We performed this vote by me counting down verbally in our meeting voice chat, and everybody sending a number using Discord's text chat right when the countdown finished.
-If we all unanimously voted, we would assign the story points to the story and continue on to the next story.
-Otherwise, we would have a quick discussion about possible unknowns and reasons why we voted differently.
-We continued this process until we had a solid number of issues in our backlog that had story point estimates and were ready to be implemented.
+[PLACEHOLDER: Gallery page screenshot showing the Sort dropdown open (Image 2)]
 
-My team also performed extensive code reviews as part of our Scrum practices.
-I set up a rule in our GitLab project at the beginning of development that enforced that there needed to be one approval on a pull request (i.e., a set of code changes that a developer makes that is looking to be merged into the main branch of code) by another team member before the code could be merged onto the main development branch.
-This ensured that we didn't accidentally merge broken code, since another team member would need to review and test the pull request (PR) before approving it to be merged.
-The approval process was also aided by the continuous integration system I set up, ensuring that all backend tests/formatting and frontend formatting passed before allowing the code to merge.
-Moreover, we also had a soft rule to add "acceptance criteria" to each of our PRs, giving the reviewer a small list of items to check for and test before giving their approval.
-For example, whenever I submitted a pull request containing some new backend endpoints, alongside adding unit tests that ensured the behavior of said endpoints was working, I would also add some acceptance criteria for the reviewer to test out each of the endpoints themselves using the automatically generated Swagger documentation.
-See @acceptance_criteria for an example of this acceptance criteria.
+The Sort dropdown allows users to sort the gallery by either date created (the date the photo was taken, extracted from EXIF metadata) or date added (the date the image was uploaded to FreezeTag), and to order the results either newest first or oldest first. These two sort dimensions are distinct and both useful: a user who just uploaded a batch of old scanned photos would want to sort by date added to find what they just uploaded, while a user browsing their collection chronologically would want to sort by date created.
 
-#figure(
-  image("../assets/acceptance_criteria.png"),
-  caption: [A Merged Pull Request with Acceptance Criteria in the Description],
-) <acceptance_criteria>
+The Select button switches the gallery into a multi-selection mode. In this mode, a tag panel appears on the right side of the screen listing all tags in the library, and users can check individual images in the gallery to build a selection. Once a selection is made, users can apply tags to all selected images at once, run plugins against the selection, or delete the selected images. This workflow is particularly important for users who upload large batches of photos at once and want to apply a shared set of tags across all of them without having to open each image individually.
 
+[PLACEHOLDER: Gallery page screenshot showing Select mode with the tag panel visible (Image 3)]
 
-In accordance with Agile methodologies, my team performed several user studies during the latter half of development to receive user feedback and determine which areas of the project needed the most work or should be pivoted.
-Our users mostly consisted of TCG traders and collectors, while the rest of our users were individuals from different TCG-related roles, such as TCG players and card shop owners.
-The feedback we received from traders and collectors is the most valuable because they comprise the largest portion of our prospective user base.
-For our TCG players, we want to make sure the social aspects of our app and gameplay-related features are polished, like rulesets and card groupings.
-For our card shop owners, we wanted feedback on posts, collection management, and chats; they're our "power users".
-We also conducted a user study with a professional software developer to gauge their opinions and advice on our project. This was to get feedback on the frontend design that we might not have thought of otherwise, due to our relatively low amount of experience.
+Clicking any image in the gallery opens the image detail view, which is a fullscreen overlay showing the image at full resolution alongside a collapsible metadata sidebar. The image viewer supports zoom controls at 1x and 2x magnification, and left and right arrow buttons allow the user to navigate to the previous or next image in the current gallery view without closing the overlay. The metadata sidebar displays all EXIF data extracted from the image at upload time, including resolution, date taken, date uploaded, GPS coordinates, and camera model. Below the EXIF fields is a scrollable tags section where users can view, remove, and add tags on a per-image basis. The sidebar can be hidden entirely if the user wants to focus on the image itself. Below the tags section in the sidebar is where the interactive map is displayed as part of my first Rank 3 feature, which is described in the next section.
 
-Most of our user studies were one-shots, with the notable exception being a TCG player whom we met up with twice---the second time being after we implemented some small features and fixed some bugs based on their prior feedback.
-We had users try the app on a physical phone, taking on a "new user role" in the application.
-We started them out on the "login and register" page, and we tried to have our users be in control of the app themselves.
-However, when necessary, we pushed them towards areas of the app that we wanted them to interact with (i.e., the pages they hadn't explored yet).
-Moreover, some of the studies were done remotely over online platforms like Discord, so having the users get their hands on the app was difficult.
-In such situations, we screen-shared our own phones or an emulator view and asked the users what they'd like to tap and type.
+[PLACEHOLDER: PreviewWindow screenshot (Image 4)]
 
-Across all of our user studies near the final phase of development, the general impression of the app was positive.
-Users voiced that the app has a clean layout, a smooth and easy navigation, and a good potential for collectors and traders to coexist.
-When asked to rate the application on a scale of 1 to 5 (with 1 being terrible and 5 being excellent), users gave the app a rating of 3.5 to 4.5, and most users rated the ease of use between 4 and 5 on average.
-This helps to show that we have a well-understood and easy-to-navigate interface, despite the fact that there are a few UI/UX issues that could have been touched upon.
-For an example of some feedback we received and acted upon due to the user review, see @user_study_ui; before the user studies, we had just typed in the internal user IDs of the users we wanted to create chats with when testing, without.
-This interface is not helpful for an end-user, as these internal IDs are not exposed to users---users likely expect to find other users by their name, not some arbitrary number.
-Thus, we prioritized fixing this issue, and ended up with a system where you could scroll and search through users by their name.
-Ultimately, this user feedback helped us identify and fix immediate issues to make our app more targeted and helpful to our prospective users.
+The upload page allows users to add new images to their FreezeTag library. Users can either click an "Upload Images" button to open a file picker or drag and drop images directly onto the button. Once images are staged for upload, they appear as thumbnails in the main area of the page, and the tag panel from the gallery's Select mode appears on the right side of the screen. This allows users to select from existing tags or create new ones and apply them to the entire batch before finalizing the upload. The Select All and Deselect All buttons at the top make it easy to apply a set of tags to every image in the batch at once.
 
-#figure(
-  table(
-    columns: 2,
-    inset: 0.25in,
-    image("../assets/user_study_ui_screenshot_before.png", height: 50%),
-    image("../assets/user_study_ui_screenshot_after.png", height: 50%),
-  ),
-  caption: [Chat Creation UI before and after the User Studies]
-) <user_study_ui>
+[PLACEHOLDER: Upload page screenshot (Image 5)]
 
-One of the final Scrum activities my team performed was sprint retrospectives.
-In the following meeting after a sprint ended, I would create a Google Doc with the following headings: "What went well during the last sprint?", "What went poorly during the last sprint?", "What could we improve on as a team?", and "Shoutouts".
-Then, I would set a timer for about 5 minutes, and we would all write a few bullet points about our thoughts on each heading.
-The final heading, "Shoutouts", was reserved for giving recognition to other teammates for especially great work during the sprint.
-Once the timer expired, we would take turns reading out what we wrote about under each of the headings, and others would chime in if they agreed or had any thoughts on the feedback.
+The tags management page provides a dedicated interface for managing all tags stored across the entire library. It displays a paginated list of every tag in the system alongside a count of how many images currently carry that tag. Users can search across all tags using a fuzzy search bar at the top of the page, which makes it easy to find a specific tag in a large library. Each tag row has a navigation arrow that filters the gallery to show only images with that tag, and a delete button that removes the tag from all images. Users can also select multiple tags using the checkboxes and mass-delete them in a single action, which is useful when a plugin has generated a large number of unwanted or duplicate tags.
 
-These sprint reviews were very helpful for gauging the opinions of my teammates and the state/morale of the team as a whole.
-They gave us actionable feedback on what we were struggling with and allowed us to discuss how we could address these issues.
-For example, a common piece of feedback we almost unanimously shared was that we weren't communicating enough.
-We addressed this by having everyone make an effort to give progress updates asynchronously over Discord chat on days that we weren't meeting up.
-This communication issue likely would not have been brought to light or resolved if not for these sprint retrospective activities.
+[PLACEHOLDER: Insert the tags management page screenshot (Image 6)]
 
-In summary, this adapted Agile/Scrum structure worked well for our team overall.
-It provided a consistent rhythm for development while remaining flexible enough to accommodate external constraints, such as academic deadlines and the summer development pause.
-The iterative cycle of planning, development, and reflection kept the project organized, motivated us to deliver tangible progress every sprint, and allowed us to look back on our recent progress and adapt our development processes to be more efficient and manageable.
-However, we also encountered challenges, particularly around accurately coordinating schedules and maintaining our typical development cadence during busier academic weeks.
-Despite these hurdles, Agile and Scrum proved to be valuable frameworks for maintaining momentum and focus throughout the project.
+The settings page is organized into three sections: Profile, Preferences, and Security. The Profile section allows users to upload and change their profile picture, which appears in the bottom left corner of the sidebar throughout the application. The Preferences section contains two settings: a theme selector and a unit toggle. The theme selector currently allows users to choose from a set of built-in Catppuccin @catppuccin themes, which is a popular open-source color scheme with a dedicated following in the self-hosted software community. The unit toggle switches between metric and imperial units, which affects how distances are displayed, particularly in the context of the map feature. The Security section contains a password change form.
+
+[PLACEHOLDER: Insert the settings page screenshot (Image 7)]
+
+== Rank 3 Features
+
+My two Rank 3 features were the interactive map view within the image detail sidebar, and custom theme importing through the settings page.
+
+The map feature is currently in progress and will be integrated directly into the image detail sidebar, appearing below the tags section when an image has GPS coordinate data available. The design intent is similar to how Google Photos surfaces a small embedded map within its photo detail view, showing the approximate location where the photo was taken as a pin on an interactive map the user can pan and zoom. The map will be rendered using Leaflet @leaflet with OpenStreetMap @openstreetmap tile data, both of which are open-source and do not require an API key, which is consistent with FreezeTag's goal of being fully self-hostable without requiring accounts or paid services. Because the GPS coordinates are already extracted from EXIF data at upload time and stored in the database, the map component only needs to read those coordinates and pass them to Leaflet to render the pin.
+
+[PLACEHOLDER: Insert a screenshot of the map feature once complete]
+
+The custom theme importing feature is also currently in progress and will be accessible through the Preferences section of the settings page. The goal is to allow users to upload a configuration file specifying a set of Catppuccin CSS variable names and the color values they want to assign to each one, effectively letting them define a completely custom color palette for their FreezeTag instance. This approach builds on the Catppuccin theming system already in place in the application, so users who are familiar with Catppuccin's variable naming conventions can customize their instance without needing to write any CSS directly. There is also potential to extend this with a color picker interface or a plain text input for pasting in values, which would lower the barrier for users who are not familiar with the file format.
+
+[PLACEHOLDER: Insert a screenshot of the theme importing UI once complete]
 
 #pagebreak(weak: true)
 
-= Reflection
-Overall, I feel our project was successful, demonstrating both solid technical implementation and meaningful collaboration.
-We successfully created a full-stack application that has many valuable features, such as card scanning, collection management, and user interaction.
-I was also generally pleased with our usage of Agile and Scrum methodologies.
-While sometimes it did feel like I was forcing my teammates to perform these seemingly "time-wasting" activities, I also believe it helped keep our team on track despite some hiccups in development.
-For example, doing stand-up at the beginning of every meeting helped "break the ice" a bit, and spawned discussion regarding what parts of the application we needed to prioritize and what assignments in class we needed to keep up to date with.
-It also helped many of us stay on top of the work that we were doing.
-There were several times where one team member (myself included) would report something along the lines of, "I actually didn't get anything done since our last meeting", which was not only a cause for self-reflection in the team member, but also caused some implicit peer-pressure to keep the development cadence up.
-Sprint estimation helped us keep a model of how difficult certain tasks would be and allowed us to allocate tasks between members much more fairly.
-This wasn't as directly beneficial to our development compared to some of the other Scrum practices, but it was a helpful estimate for how difficult a task was and provided a pseudo-justification for why a certain issue may be blocking a developer for multiple days.
-Sprint retrospectives gave us a specific time to be candid with one another and restructure how we worked together as a team.
-As I mentioned before, this allowed us to positively reconfigure how we communicated with one another.
+= Software Methodologies and Techniques
 
-Despite my general positivity, our project had much more potential for features and UI polish.
-Unfortunately, I ended up taking on an inordinate amount of work on the project, and one of my teammates became much less active on the project during the latter half of development, which hampered our progress and required my other two teammates and me to pick up the slack, resulting in us accomplishing less overall.
-This teammate also didn't finish their rank-3 feature, which harmed the overall state of our project.
-For example, one of our prospective features was "event posts", where tournament owners or card shop owners could make posts tagged with a time and location describing the event that they are hosting (including what card games/rulesets were being played, prizes, etc.), but this was scrapped due to our limited development bandwidth.
-I also regret not working on the project over the summer (though I think I have a good excuse, as I was working as a full-time software engineer), as that would've given us a good boost going into our second semester of development, where time was much more valuable than the relatively lax summer days.
+== Agile and Development Process
 
-Overall, I believe this experience with Agile and Scrum practices was fairly accurate to my industry experience, despite the aforementioned setbacks; the good parts of using Agile and Scrum were certainly made evident.
-I modeled our usage of these practices on my experience as a software engineer intern and part-time employee at Lucid Software, which is somewhat well-known for actively incorporating Agile and Scrum into their practices.
+From the beginning of the project, our team adopted an Agile @agile development process. Agile was a natural fit for FreezeTag because the application had a large number of features that were interdependent on each other, meaning that the specific implementation details of one part of the system frequently had implications for how another part needed to be built. Rather than trying to plan every detail upfront and stick to a rigid schedule, Agile gave us the flexibility to respond to those kinds of discoveries as they came up during development without derailing the project.
+
+Development was divided by the capstone course into three major phases: Alpha, Beta, and Release, each roughly four weeks long. We used these phase boundaries as natural checkpoints to reflect on what had been completed and make deliberate decisions about what to prioritize in the next phase. At the end of each phase, the team would review the state of the issue board, assess which features had shipped and which had not, and decide together whether unfinished items should be carried forward as priorities or pushed to the backlog in favor of other work. This gave us a structured moment to recalibrate without needing to hold separate retrospective meetings throughout the phase.
+
+Within each phase, work was tracked using GitLab's @gitlab issue board. We created issues for every feature, bug, and task across both the frontend and backend, and used a set of labels to organize them. Phase labels (Alpha, Beta, Release) indicated which phase an issue was targeted for. Domain labels (Frontend, Backend) indicated which side of the codebase the issue belonged to. Type labels (Bug, Feature) described the nature of the work. Each issue also carried a state label (Backlog, To Do, In Progress, Done) that was updated as work progressed, giving the whole team a clear and current picture of where development stood at any given time.
+
+[PLACEHOLDER: Insert a screenshot of the GitLab issue board showing the label columns and a spread of issues across states]
+
+[PLACEHOLDER: Insert a screenshot of a specific issue detail page showing its labels, assignee, and description]
+
+== Meetings and Communication
+
+Our team met three times per week throughout most of both semesters. The Friday staff meeting with the course instructor was held in person. Outside of that, we met remotely on Monday evenings to align on goals for the week ahead, and again on Wednesday or Thursday evenings to review progress, work through any blockers, and prepare for the Friday meeting. Most communication between meetings happened asynchronously over Discord, which gave us the flexibility to work on our own schedules while still staying coordinated. Scheduling was not always straightforward given that four students have very different weekly commitments, so we kept the number of required meetings small and relied on the asynchronous channel to fill in the gaps.
+
+== Tools and Infrastructure
+
+Before any application code was written, the team prioritized setting up a CI pipeline that would automatically enforce quality standards on every merge request targeting the main branch. Max was the primary person responsible for building and maintaining this system. Every merge request was required to pass three automated checks before it was eligible for human review: a format check, a lint check, and a unit test run.
+
+The format check required all code to be formatted with the standard tool for its language. We used Prettier @prettier for the frontend and gofmt @gofmt for the backend. Consistent formatting across the codebase reduces unnecessary noise in diffs and makes the repository history easier to follow when multiple people are working in overlapping areas.
+
+The lint check required all code to pass the appropriate linter with no warnings or errors. We used ESLint @eslint for the frontend and golangci-lint @golangci_lint for the backend. Both tools were configured with their default rulesets as the baseline, with a small number of additional rules added on top to suit our specific needs.
+
+The unit test check required all existing tests to pass and enforced a minimum code coverage threshold of 80% across both the frontend and backend. Frontend visual components were largely exempt from the coverage requirement since they are primarily layout and styling code that is better verified by hand than by automated tests. By the end of development, the frontend had reached approximately 95% code coverage and the backend approximately 85%, both comfortably above the minimum.
+
+[PLACEHOLDER: Insert a screenshot of a GitLab merge request showing the CI pipeline status and the reviewer approval section]
+
+== Code Reviews
+
+In addition to the automated pipeline checks, every merge request required a manual review and approval from at least one designated primary reviewer before it could be merged. The author of each merge request was responsible for assigning a primary reviewer with relevant knowledge of the area of the codebase being changed. Frontend merge requests were reviewed by whichever frontend engineer had not authored the request: if I submitted a merge request, Brayden would review it, and if Brayden submitted one, I would review it. The same pattern applied on the backend between Ethan and Max. Any team member could also leave a blocking review if they found a significant issue regardless of domain, though this was rare in practice. The combination of automated checks and mandatory peer review meant that code reaching the main branch had passed both machine-enforced quality gates and a human assessment before being integrated.
+
+== Documentation
+
+Our team's general approach to documentation favored writing clear, readable code over heavy inline commenting. The main structured exception to this was the backend API layer, where all endpoints were annotated with comments specifically to enable automatic Swagger documentation generation through Gin-Swagger. This gave the frontend team a reliable, always-current reference for every available endpoint without needing to read through backend source code directly. At the project level, we maintained documentation in READMEs throughout the repository. This was done with an eye toward FreezeTag's planned release as an open-source project under the MIT license following the conclusion of the capstone sequence in the summer of 2026, at which point external contributors will need enough documentation to understand and work with the system without guidance from the original team.
+
+== User Studies and Feedback
+
+Our team participated in the formal user studies required by the capstone course. Beyond those, we also gathered informal feedback throughout development by showing in-progress features to peers and collecting reactions in the moment. This kind of lightweight, continuous feedback helped us catch usability issues early, before they became deeply embedded in the design. Because we used FreezeTag ourselves as part of the development process, we also gave each other ongoing feedback on UI decisions as new interface elements landed, which helped the team converge on design choices efficiently without needing dedicated meetings for every decision.
 
 #pagebreak(weak: true)
-
-= Conclusion
-The development of TradeTracker served as a technical and collaborative learning experience that demonstrated the value of Agile methodologies in real-world software projects.
-By embracing Scrum principles such as sprint planning, retrospectives, and continuous integration of user feedback, our team maintained a structured yet flexible workflow that enabled consistent progress, even amid the challenges of differing schedules and workloads.
-These practices helped us refine our communication, adapt to user feedback, and maintain a shared sense of accountability throughout the project's lifecycle.
-
-From a technical perspective, TradeTracker successfully integrates a full-stack architecture that combines FastAPI, SQLite, and Expo (React Native) into a cohesive platform for managing and trading collectible cards.
-The inclusion of features like card scanning, collection management, and user interaction demonstrates the potential of the application to provide meaningful value to TCG enthusiasts.
-While some stretch features, such as event posts and moderation tools, were not fully realized due to time constraints, the foundation laid by our design and development process provides a strong base for future improvements and expansions.
-
-Beyond the technical deliverables, this project highlighted the importance of iterative development and open communication in team-based environments.
-The feedback gathered from user studies reinforced the utility and appeal of the application while also identifying areas for further enhancement.
-Ultimately, TradeTracker not only met its primary objectives of facilitating collection management and social interaction within the TCG community but also served as a practical demonstration of how Agile practices can transform an academic project into a professional-grade product.
-
-In conclusion, this experience has deepened my understanding of both software engineering principles and collaborative project management.
-It reinforced that successful software development is about communication, adaptability, and delivering real value to users.
-I am proud of what our team accomplished and am confident that the lessons learned from TradeTracker will carry forward into future professional endeavors.

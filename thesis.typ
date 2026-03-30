@@ -6,14 +6,15 @@
 // Draft watermark.
 #set page(background: rotate(24deg, text(72pt, fill: color.luma(90%), strong(upper("Draft"))))) if draft_mode
 
+// Heading styles.
 #show heading: it => [
   #if it.level == 1 [
     #set align(center)
     #set text(12pt, weight: "regular")
     #block(upper(it.body), inset: (y: 12pt))
   ] else if it.level == 2 [
-    #set align(center)
-    #set text(12pt, weight: "regular")
+    #set align(center) // TODO: left-aligned or center-aligned?
+    #set text(12pt, weight: "regular") // TODO: bold or regular?
     #block(it.body, inset: (y: 12pt))
   ] else if it.level == 3 [
     #set text(12pt, weight: "regular")
@@ -21,6 +22,7 @@
   ]
 ]
 
+// Cover page.
 #align(center)[
   #upper(thesis_title)
 
@@ -86,7 +88,7 @@ Approved:
 #set par(leading: 1em, first-line-indent: (amount: 0.5in, all: true))
 
 // Set list styling
-#set list(indent: 1em, marker: "-")
+#set list(indent: 1em)
 
 = Abstract
 #include "content/abstract.typ"
@@ -126,6 +128,10 @@ Approved:
 )
 
 #include "content/content.typ"
+
+#include "content/references.typ"
+
+#include "content/appendix.typ"
 
 #pagebreak(weak: true)
 
