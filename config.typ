@@ -1,4 +1,4 @@
-#let thesis_title = "INSERT TITLE HERE"
+#let thesis_title = "FreezeTag: \nDesigning and Building a Self-Hosted \nImage Management Application"
 #let author_name = "Sathya Tadinada"
 #let submission_date = datetime(year: 2026, month: 3, day: 1)
 #let draft_mode = true
