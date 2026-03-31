@@ -2,6 +2,7 @@
 
 #set page(paper: "us-letter", margin: (left: 1.5in, right: 1in, top: 1in, bottom: 1in))
 #set text(font: "Times New Roman", size: 12pt)
+#set pagebreak(weak: true)
 
 // Draft watermark.
 #set page(background: rotate(24deg, text(72pt, fill: color.luma(90%), strong(upper("Draft"))))) if draft_mode
@@ -79,7 +80,7 @@ Approved:
   All Rights Reserved
 ]
 
-#pagebreak(weak: true)
+#pagebreak()
 
 #set page(numbering: "i")
 
@@ -90,10 +91,9 @@ Approved:
 // Set list styling
 #set list(indent: 1em)
 
-= Abstract
 #include "content/abstract.typ"
 
-#pagebreak(weak: true)
+#pagebreak()
 
 #show outline.entry: it => {
   if it.element.depth == 1 {
@@ -115,7 +115,7 @@ Approved:
 #set outline.entry(fill: none)
 #outline(title: "Table of Contents")
 
-#pagebreak(weak: true)
+#pagebreak()
 
 // Set content page numbering.
 #set page(numbering: "1")
@@ -133,7 +133,7 @@ Approved:
 
 #include "content/appendix.typ"
 
-#pagebreak(weak: true)
+#pagebreak()
 
 #set page(
   header: none,
