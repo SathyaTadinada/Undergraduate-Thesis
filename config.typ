@@ -1,7 +1,7 @@
 #let thesis_title = "FreezeTag: \nDesigning and Building a Self-Hosted \nImage Management Application"
 #let author_name = "Sathya Tadinada"
 #let submission_date = datetime(year: 2026, month: 4, day: 11)
-#let draft_mode = true
+#let draft_mode = false
 
 
 #let cover_page_approvers = (
