@@ -1,4 +1,4 @@
-# Undergrad Thesis
+# Honors Undergraduate Thesis
 
 Source for my University of Utah senior honors thesis: *FreezeTag: Designing and Building a Self-Hosted Image Management Application*.
 
