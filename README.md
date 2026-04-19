@@ -15,7 +15,7 @@ Source for my University of Utah senior honors thesis: *FreezeTag: Designing and
 Requires [Typst](https://typst.app) and Python 3 with `pypdf` installed.
 
 ```sh
-./compile_thesis.sh
+bash compile_thesis.sh
 ```
 
 This compiles `thesis.typ` to `thesis.pdf`, then runs `merge_thesis.py` to splice in the design document and produce `thesis-final.pdf` (the submission copy).
